@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Endpoint Eye',
-  description: 'Real-time monitoring for your API endpoints.',
+  title: 'Price RT Monitor',
+  description: 'Real-time price monitoring across multiple regions.',
 };
 
 export default function RootLayout({

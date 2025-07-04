@@ -9,8 +9,7 @@ export async function checkEndpointStatus(
   await new Promise(resolve => setTimeout(resolve, Math.random() * 1500 + 500));
 
   // Simulate API call and validation logic
-  // Make one endpoint always fail for demonstration
-  const success = endpoint.id === 'analytics-service-failing' ? false : Math.random() > 0.2; // 80% chance of success
+  const success = Math.random() > 0.2; // 80% chance of success
 
   if (success) {
     return { status: 'success', message: 'OK' };

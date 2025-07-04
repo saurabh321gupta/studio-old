@@ -8,16 +8,16 @@ export default function Home() {
       <div className="w-full max-w-6xl mx-auto">
         <header className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-400">
-            Endpoint Eye
+            Price RT Monitor
           </h1>
           <p className="text-lg text-muted-foreground mt-3 max-w-2xl mx-auto">
-            A real-time monitoring tool to check the health and status of your API endpoints.
+            A real-time monitoring tool to check the health and status of your price endpoints across regions.
           </p>
         </header>
         <Card className="border-2 border-border/50 shadow-xl">
           <CardHeader>
-            <CardTitle>API Status Dashboard</CardTitle>
-            <CardDescription>Click "Check" to validate an endpoint's response and status in real-time.</CardDescription>
+            <CardTitle>Price Service Status</CardTitle>
+            <CardDescription>Click a region to validate its price service response in real-time.</CardDescription>
           </CardHeader>
           <CardContent>
             <EndpointTable endpoints={endpoints} />

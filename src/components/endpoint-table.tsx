@@ -3,17 +3,8 @@
 import { useState, useTransition } from 'react';
 import type { EndpointConfig } from '@/config/endpoints';
 import { checkEndpointStatus } from '@/app/actions';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Loader2, CheckCircle2, XCircle, Circle, ArrowRight } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,59 +14,36 @@ interface StatusState {
   message?: string;
 }
 
-const StatusIndicator = ({ status, message }: StatusState) => {
-  const statusConfig = {
-    idle: {
-      icon: <Circle className="text-muted-foreground/60" />,
-      text: 'Idle',
-      color: 'text-muted-foreground/80',
-    },
-    loading: {
-      icon: <Loader2 className="animate-spin text-primary" />,
-      text: 'Checking...',
-      color: 'text-primary',
-    },
-    success: {
-      icon: <CheckCircle2 className="text-green-400" />,
-      text: 'Success',
-      color: 'text-green-400',
-    },
-    failure: {
-      icon: <XCircle className="text-destructive" />,
-      text: `Failure`,
-      color: 'text-destructive',
-    },
-  };
-
-  const current = statusConfig[status];
-
-  return (
-    <div className={cn("flex items-center gap-2 font-medium", current.color)}>
-      {current.icon}
-      <span className="flex-grow">{current.text}</span>
-      {status === 'failure' && message && <span className="text-xs font-mono opacity-80 hidden md:inline-block">({message})</span>}
-    </div>
-  );
+const statusClasses = {
+  idle: 'border-border/50 hover:bg-card/80',
+  loading: 'border-primary/50 ring-2 ring-primary/50 cursor-not-allowed',
+  success: 'border-green-400/50 bg-green-500/10 ring-2 ring-green-400/50',
+  failure: 'border-destructive/50 bg-destructive/10 ring-2 ring-destructive/50',
 };
 
-const MethodBadge = ({ method }: { method: EndpointConfig['method'] }) => {
-  const colorMap = {
-    GET: 'bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30',
-    POST: 'bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30',
-    PUT: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30 hover:bg-yellow-500/30',
-    DELETE: 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30',
-  };
-  return <Badge variant="outline" className={cn("w-[60px] justify-center text-xs font-bold", colorMap[method])}>{method}</Badge>;
-}
+const StatusIcon = ({ status }: { status: Status }) => {
+  switch (status) {
+    case 'loading':
+      return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
+    case 'success':
+      return <CheckCircle2 className="h-5 w-5 text-green-400" />;
+    case 'failure':
+      return <XCircle className="h-5 w-5 text-destructive" />;
+    default:
+      return <Circle className="h-5 w-5 text-muted-foreground/60" />;
+  }
+};
 
 export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
   const [statuses, setStatuses] = useState<Record<string, StatusState>>(
     endpoints.reduce((acc, ep) => ({ ...acc, [ep.id]: { status: 'idle' } }), {})
   );
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleCheck = (endpoint: EndpointConfig) => {
+    if (statuses[endpoint.id].status === 'loading') return;
+
     setStatuses(prev => ({ ...prev, [endpoint.id]: { status: 'loading' } }));
     startTransition(async () => {
       const result = await checkEndpointStatus(endpoint);
@@ -91,47 +59,29 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
   };
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[40%]">Endpoint</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {endpoints.map((endpoint) => (
-            <TableRow key={endpoint.id} className="hover:bg-card/50">
-              <TableCell className="font-medium">
-                <div className="flex flex-col">
-                    <span>{endpoint.title}</span>
-                    <span className="text-xs text-muted-foreground font-mono">{endpoint.url}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <MethodBadge method={endpoint.method} />
-              </TableCell>
-              <TableCell>
-                <StatusIndicator {...statuses[endpoint.id]} />
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCheck(endpoint)}
-                  disabled={statuses[endpoint.id].status === 'loading'}
-                  className="group"
-                >
-                  Check
-                  <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {endpoints.map((endpoint) => {
+        const currentStatus = statuses[endpoint.id].status;
+        return (
+          <button
+            key={endpoint.id}
+            onClick={() => handleCheck(endpoint)}
+            disabled={currentStatus === 'loading'}
+            className={cn(
+              "p-4 rounded-lg border text-left w-full h-full min-h-[6rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+              statusClasses[currentStatus]
+            )}
+          >
+            <div className="flex justify-between items-start">
+                <span className="font-semibold text-sm text-foreground pr-2">{endpoint.title}</span>
+                <StatusIcon status={currentStatus} />
+            </div>
+            <div className="flex items-end mt-2">
+               <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
