@@ -2,17 +2,30 @@
 
 import type { EndpointConfig } from '@/config/endpoints';
 
+export type CustomRequestPayload = {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: Record<string, any>;
+};
+
 export async function checkEndpointStatus(
-  endpoint: EndpointConfig
+  endpoint: EndpointConfig,
+  customPayload?: CustomRequestPayload
 ): Promise<{ status: 'success' | 'failure'; message: string }> {
   try {
+    const isCustom = customPayload !== undefined;
+
+    const method = isCustom ? customPayload.method || 'GET' : endpoint.method;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(isCustom ? customPayload.headers : endpoint.headers),
+    };
+    const body = isCustom ? customPayload.body : endpoint.body;
+
     const response = await fetch(endpoint.url, {
-      method: endpoint.method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...endpoint.headers,
-      },
-      body: endpoint.body ? JSON.stringify(endpoint.body) : undefined,
+      method: method,
+      headers: headers,
+      body: body ? JSON.stringify(body) : undefined,
       // 5 second timeout
       signal: AbortSignal.timeout(5000),
     });

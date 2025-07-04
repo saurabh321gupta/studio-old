@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import type { EndpointConfig } from '@/config/endpoints';
-import { checkEndpointStatus } from '@/app/actions';
+import { checkEndpointStatus, type CustomRequestPayload } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 type Status = 'idle' | 'loading' | 'success' | 'failure';
 interface StatusState {
@@ -36,20 +37,45 @@ const StatusIcon = ({ status }: { status: Status }) => {
 interface EndpointTableProps {
   endpoints: EndpointConfig[];
   onResponse?: (title: string, message: string) => void;
+  useCustomRequest: boolean;
+  customRequestConfig: string;
 }
 
-export function EndpointTable({ endpoints, onResponse }: EndpointTableProps) {
+export function EndpointTable({ endpoints, onResponse, useCustomRequest, customRequestConfig }: EndpointTableProps) {
   const [statuses, setStatuses] = useState<Record<string, StatusState>>(
     endpoints.reduce((acc, ep) => ({ ...acc, [ep.id]: { status: 'idle' } }), {})
   );
   const [, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const handleCheck = (endpoint: EndpointConfig) => {
     if (statuses[endpoint.id].status === 'loading') return;
 
+    let customPayload: CustomRequestPayload | undefined = undefined;
+    if (useCustomRequest) {
+      if (!customRequestConfig.trim()) {
+        toast({
+          variant: 'destructive',
+          title: 'Custom Request Error',
+          description: 'Custom request is enabled, but the configuration is empty.',
+        });
+        return;
+      }
+      try {
+        customPayload = JSON.parse(customRequestConfig);
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid JSON',
+          description: 'The custom request configuration is not valid JSON.',
+        });
+        return; // Abort if JSON is invalid
+      }
+    }
+
     setStatuses(prev => ({ ...prev, [endpoint.id]: { status: 'loading' } }));
     startTransition(async () => {
-      const result = await checkEndpointStatus(endpoint);
+      const result = await checkEndpointStatus(endpoint, customPayload);
       setStatuses(prev => ({ ...prev, [endpoint.id]: { status: result.status } }));
       if (onResponse) {
         onResponse(endpoint.title, result.message);

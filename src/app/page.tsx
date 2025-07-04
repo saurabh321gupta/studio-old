@@ -11,10 +11,25 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+const customRequestPlaceholder = `{
+  "method": "POST",
+  "headers": {
+    "x-custom-header": "value"
+  },
+  "body": {
+    "custom_key": "custom_value"
+  }
+}`;
 
 export default function Home() {
   const [lastResponse, setLastResponse] = useState<{ title: string; message: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [useCustomRequest, setUseCustomRequest] = useState(false);
+  const [customRequestConfig, setCustomRequestConfig] = useState('');
 
   const handleNewResponse = (title: string, message: string) => {
     setLastResponse({ title, message });
@@ -51,13 +66,50 @@ export default function Home() {
           </DialogContent>
         </Dialog>
 
+        <Card className="mb-6 border-2 border-border/50 shadow-xl">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Custom Request Override</CardTitle>
+                <CardDescription>Use a custom request configuration for all endpoints.</CardDescription>
+              </div>
+              <Switch
+                id="custom-request-switch"
+                checked={useCustomRequest}
+                onCheckedChange={setUseCustomRequest}
+              />
+            </div>
+          </CardHeader>
+          {useCustomRequest && (
+            <CardContent>
+              <Label htmlFor="custom-config-textarea">Custom Configuration (JSON)</Label>
+              <Textarea
+                id="custom-config-textarea"
+                placeholder={customRequestPlaceholder}
+                value={customRequestConfig}
+                onChange={(e) => setCustomRequestConfig(e.target.value)}
+                className="font-mono mt-2"
+                rows={10}
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                The endpoint URL will be used from the button clicked. Method, headers, and body will be overridden by this configuration.
+              </p>
+            </CardContent>
+          )}
+        </Card>
+
         <Card className="border-2 border-border/50 shadow-xl">
           <CardHeader>
             <CardTitle>Price Endpoint Status</CardTitle>
             <CardDescription>Click a region to validate its price endpoint response in real-time.</CardDescription>
           </CardHeader>
           <CardContent>
-            <EndpointTable endpoints={endpoints} onResponse={handleNewResponse} />
+            <EndpointTable 
+              endpoints={endpoints} 
+              onResponse={handleNewResponse}
+              useCustomRequest={useCustomRequest}
+              customRequestConfig={customRequestConfig}
+            />
           </CardContent>
         </Card>
       </div>
