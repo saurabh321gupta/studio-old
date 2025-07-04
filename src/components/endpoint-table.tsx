@@ -61,14 +61,15 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {endpoints.map((endpoint) => {
-        const currentStatus = statuses[endpoint.id].status;
+        const currentStatusState = statuses[endpoint.id];
+        const currentStatus = currentStatusState.status;
         return (
           <button
             key={endpoint.id}
             onClick={() => handleCheck(endpoint)}
             disabled={currentStatus === 'loading'}
             className={cn(
-              "p-4 rounded-lg border text-left w-full h-full min-h-[6rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+              "p-4 rounded-lg border text-left w-full h-full min-h-[7rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
               statusClasses[currentStatus]
             )}
           >
@@ -76,8 +77,12 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
                 <span className="font-semibold text-sm text-foreground pr-2">{endpoint.title}</span>
                 <StatusIcon status={currentStatus} />
             </div>
-            <div className="flex items-end mt-2">
+            <div className="flex flex-col items-start gap-1 mt-2">
                <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
+               <div className="text-xs font-mono truncate w-full">
+                 {(currentStatus === 'failure') && <span className="text-destructive">{currentStatusState.message}</span>}
+                 {(currentStatus === 'success') && <span className="text-green-400">{currentStatusState.message}</span>}
+               </div>
             </div>
           </button>
         );
