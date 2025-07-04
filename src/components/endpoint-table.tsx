@@ -8,12 +8,10 @@ import { Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Status = 'idle' | 'loading' | 'success' | 'failure';
 interface StatusState {
   status: Status;
-  message?: string;
 }
 
 const statusClasses = {
@@ -49,12 +47,28 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
     setStatuses(prev => ({ ...prev, [endpoint.id]: { status: 'loading' } }));
     startTransition(async () => {
       const result = await checkEndpointStatus(endpoint);
-      setStatuses(prev => ({ ...prev, [endpoint.id]: result }));
-      if (result.status === 'failure' && result.message.length > 100) { // Only toast for long error messages
+      setStatuses(prev => ({ ...prev, [endpoint.id]: { status: result.status } }));
+
+      if (result.status === 'success') {
+        toast({
+          title: `Success: ${endpoint.title}`,
+          description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+              <code className="text-white">{result.message}</code>
+            </pre>
+          ),
+          duration: 3000,
+        });
+      } else {
         toast({
           variant: 'destructive',
-          title: `Endpoint Failed: ${endpoint.title}`,
-          description: "See details in the response panel.",
+          title: `Failed: ${endpoint.title}`,
+          description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+              <code className="text-white">{result.message}</code>
+            </pre>
+          ),
+          duration: 5000,
         });
       }
     });
@@ -64,8 +78,7 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
     <TooltipProvider>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {endpoints.map((endpoint) => {
-          const currentStatusState = statuses[endpoint.id];
-          const currentStatus = currentStatusState.status;
+          const currentStatus = statuses[endpoint.id].status;
           return (
             <Tooltip key={endpoint.id}>
               <TooltipTrigger asChild>
@@ -73,7 +86,7 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
                   onClick={() => handleCheck(endpoint)}
                   disabled={currentStatus === 'loading'}
                   className={cn(
-                    "p-4 rounded-lg border text-left w-full h-full min-h-[12rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+                    "p-4 rounded-lg border text-left w-full h-full min-h-[8rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
                     statusClasses[currentStatus]
                   )}
                 >
@@ -81,23 +94,9 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
                       <span className="font-semibold text-sm text-foreground pr-2">{endpoint.title}</span>
                       <StatusIcon status={currentStatus} />
                   </div>
-                  <div className="flex flex-col items-start gap-1 mt-2 w-full flex-grow min-h-0">
+                  <div className="flex flex-col items-start gap-1 mt-2 w-full">
                     <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
-                    <div className="text-xs font-code w-full mt-1 flex-grow min-h-0">
-                      { (currentStatus === 'success' || currentStatus === 'failure') && currentStatusState.message ? (
-                          <ScrollArea className="h-full max-h-28 w-full rounded-md bg-muted/30 p-2">
-                              <pre className="text-xs">
-                                <code className={cn(
-                                    currentStatus === 'success' && 'text-green-400',
-                                    currentStatus === 'failure' && 'text-destructive'
-                                )}>
-                                  {currentStatusState.message}
-                                </code>
-                              </pre>
-                          </ScrollArea>
-                        ) : <div className="text-muted-foreground/60 text-xs pt-2">Click to test endpoint...</div>
-                      }
-                    </div>
+                    <div className="text-muted-foreground/60 text-xs pt-2">Click to test endpoint...</div>
                   </div>
                 </button>
               </TooltipTrigger>
