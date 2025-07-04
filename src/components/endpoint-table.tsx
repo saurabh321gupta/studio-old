@@ -86,7 +86,7 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
                   onClick={() => handleCheck(endpoint)}
                   disabled={currentStatus === 'loading'}
                   className={cn(
-                    "p-4 rounded-lg border text-left w-full h-full min-h-[8rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+                    "p-4 rounded-lg border text-left w-full h-full min-h-[6rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
                     statusClasses[currentStatus]
                   )}
                 >
@@ -96,7 +96,6 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
                   </div>
                   <div className="flex flex-col items-start gap-1 mt-2 w-full">
                     <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
-                    <div className="text-muted-foreground/60 text-xs pt-2">Click to test endpoint...</div>
                   </div>
                 </button>
               </TooltipTrigger>
