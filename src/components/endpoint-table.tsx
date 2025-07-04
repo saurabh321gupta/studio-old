@@ -35,7 +35,7 @@ const StatusIcon = ({ status }: { status: Status }) => {
 
 interface EndpointTableProps {
   endpoints: EndpointConfig[];
-  onResponse: (title: string, message: string) => void;
+  onResponse?: (title: string, message: string) => void;
 }
 
 export function EndpointTable({ endpoints, onResponse }: EndpointTableProps) {
@@ -51,7 +51,9 @@ export function EndpointTable({ endpoints, onResponse }: EndpointTableProps) {
     startTransition(async () => {
       const result = await checkEndpointStatus(endpoint);
       setStatuses(prev => ({ ...prev, [endpoint.id]: { status: result.status } }));
-      onResponse(endpoint.title, result.message);
+      if (onResponse) {
+        onResponse(endpoint.title, result.message);
+      }
     });
   };
 
