@@ -17,12 +17,23 @@ export async function checkEndpointStatus(
       signal: AbortSignal.timeout(5000),
     });
 
+    const responseText = await response.text();
+
     if (response.status === endpoint.expectedResponse.status) {
-      return { status: 'success', message: `OK (${response.status})` };
+      try {
+        const jsonResponse = JSON.parse(responseText);
+        return {
+          status: 'success',
+          message: JSON.stringify(jsonResponse, null, 2),
+        };
+      } catch (e) {
+        return { status: 'success', message: responseText }; // Fallback for non-JSON response
+      }
     } else {
+      const errorMessage = `Error: Status ${response.status}`;
       return {
         status: 'failure',
-        message: `Error: Status ${response.status}`,
+        message: responseText ? `${errorMessage}\n\n${responseText}` : errorMessage,
       };
     }
   } catch (error) {

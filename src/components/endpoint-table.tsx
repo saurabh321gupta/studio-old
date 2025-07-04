@@ -8,6 +8,7 @@ import { Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Status = 'idle' | 'loading' | 'success' | 'failure';
 interface StatusState {
@@ -49,11 +50,11 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
     startTransition(async () => {
       const result = await checkEndpointStatus(endpoint);
       setStatuses(prev => ({ ...prev, [endpoint.id]: result }));
-      if (result.status === 'failure') {
+      if (result.status === 'failure' && result.message.length > 100) { // Only toast for long error messages
         toast({
           variant: 'destructive',
           title: `Endpoint Failed: ${endpoint.title}`,
-          description: result.message,
+          description: "See details in the response panel.",
         });
       }
     });
@@ -72,19 +73,30 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
                   onClick={() => handleCheck(endpoint)}
                   disabled={currentStatus === 'loading'}
                   className={cn(
-                    "p-4 rounded-lg border text-left w-full h-full min-h-[7rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+                    "p-4 rounded-lg border text-left w-full h-full min-h-[12rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
                     statusClasses[currentStatus]
                   )}
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start w-full">
                       <span className="font-semibold text-sm text-foreground pr-2">{endpoint.title}</span>
                       <StatusIcon status={currentStatus} />
                   </div>
-                  <div className="flex flex-col items-start gap-1 mt-2">
+                  <div className="flex flex-col items-start gap-1 mt-2 w-full flex-grow min-h-0">
                     <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
-                    <div className="text-xs font-mono truncate w-full">
-                      {(currentStatus === 'failure') && <span className="text-destructive">{currentStatusState.message}</span>}
-                      {(currentStatus === 'success') && <span className="text-green-400">{currentStatusState.message}</span>}
+                    <div className="text-xs font-code w-full mt-1 flex-grow min-h-0">
+                      { (currentStatus === 'success' || currentStatus === 'failure') && currentStatusState.message ? (
+                          <ScrollArea className="h-full max-h-28 w-full rounded-md bg-muted/30 p-2">
+                              <pre className="text-xs">
+                                <code className={cn(
+                                    currentStatus === 'success' && 'text-green-400',
+                                    currentStatus === 'failure' && 'text-destructive'
+                                )}>
+                                  {currentStatusState.message}
+                                </code>
+                              </pre>
+                          </ScrollArea>
+                        ) : <div className="text-muted-foreground/60 text-xs pt-2">Click to test endpoint...</div>
+                      }
                     </div>
                   </div>
                 </button>
