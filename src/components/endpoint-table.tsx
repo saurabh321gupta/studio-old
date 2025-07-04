@@ -6,7 +6,6 @@ import { checkEndpointStatus } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Status = 'idle' | 'loading' | 'success' | 'failure';
@@ -34,12 +33,16 @@ const StatusIcon = ({ status }: { status: Status }) => {
   }
 };
 
-export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
+interface EndpointTableProps {
+  endpoints: EndpointConfig[];
+  onResponse: (title: string, message: string) => void;
+}
+
+export function EndpointTable({ endpoints, onResponse }: EndpointTableProps) {
   const [statuses, setStatuses] = useState<Record<string, StatusState>>(
     endpoints.reduce((acc, ep) => ({ ...acc, [ep.id]: { status: 'idle' } }), {})
   );
   const [, startTransition] = useTransition();
-  const { toast } = useToast();
 
   const handleCheck = (endpoint: EndpointConfig) => {
     if (statuses[endpoint.id].status === 'loading') return;
@@ -48,29 +51,7 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
     startTransition(async () => {
       const result = await checkEndpointStatus(endpoint);
       setStatuses(prev => ({ ...prev, [endpoint.id]: { status: result.status } }));
-
-      if (result.status === 'success') {
-        toast({
-          title: `Success: ${endpoint.title}`,
-          description: (
-            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-              <code className="text-white">{result.message}</code>
-            </pre>
-          ),
-          duration: 3000,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: `Failed: ${endpoint.title}`,
-          description: (
-            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-              <code className="text-white">{result.message}</code>
-            </pre>
-          ),
-          duration: 5000,
-        });
-      }
+      onResponse(endpoint.title, result.message);
     });
   };
 
