@@ -9,26 +9,39 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogDescription
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 export default function Home() {
   const [lastResponse, setLastResponse] = useState<{ title: string; message: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const handleNewResponse = (title: string, message: string) => {
     setLastResponse({ title, message });
   };
   
   useEffect(() => {
-    if (isModalOpen) {
-      const timer = setTimeout(() => {
-        setIsModalOpen(false);
-      }, 5000); // 5 seconds
-      return () => clearTimeout(timer);
+    if (!isModalOpen) {
+      setProgress(0); // Reset progress on close
+      return;
     }
+
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsModalOpen(false); // Auto-close
+          return 100;
+        }
+        return prev + 1; // Increment by 1 every 50ms for a 5s total duration
+      });
+    }, 50);
+
+    return () => clearInterval(interval); // Cleanup on unmount or when modal is closed
   }, [isModalOpen]);
+
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-12">
@@ -52,15 +65,13 @@ export default function Home() {
           <DialogContent className="sm:max-w-[625px]">
             <DialogHeader>
               <DialogTitle>Last Response: {lastResponse?.title}</DialogTitle>
-              <DialogDescription>
-                This dialog will auto-close in 5 seconds.
-              </DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-auto rounded-md bg-slate-950">
               <pre className="p-4">
                 <code className="text-white">{lastResponse?.message}</code>
               </pre>
             </div>
+            <Progress value={progress} className="w-full h-2 mt-4" />
           </DialogContent>
         </Dialog>
 
