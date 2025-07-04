@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Status = 'idle' | 'loading' | 'success' | 'failure';
 interface StatusState {
@@ -59,34 +60,43 @@ export function EndpointTable({ endpoints }: { endpoints: EndpointConfig[] }) {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {endpoints.map((endpoint) => {
-        const currentStatusState = statuses[endpoint.id];
-        const currentStatus = currentStatusState.status;
-        return (
-          <button
-            key={endpoint.id}
-            onClick={() => handleCheck(endpoint)}
-            disabled={currentStatus === 'loading'}
-            className={cn(
-              "p-4 rounded-lg border text-left w-full h-full min-h-[7rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
-              statusClasses[currentStatus]
-            )}
-          >
-            <div className="flex justify-between items-start">
-                <span className="font-semibold text-sm text-foreground pr-2">{endpoint.title}</span>
-                <StatusIcon status={currentStatus} />
-            </div>
-            <div className="flex flex-col items-start gap-1 mt-2">
-               <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
-               <div className="text-xs font-mono truncate w-full">
-                 {(currentStatus === 'failure') && <span className="text-destructive">{currentStatusState.message}</span>}
-                 {(currentStatus === 'success') && <span className="text-green-400">{currentStatusState.message}</span>}
-               </div>
-            </div>
-          </button>
-        );
-      })}
-    </div>
+    <TooltipProvider>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {endpoints.map((endpoint) => {
+          const currentStatusState = statuses[endpoint.id];
+          const currentStatus = currentStatusState.status;
+          return (
+            <Tooltip key={endpoint.id}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => handleCheck(endpoint)}
+                  disabled={currentStatus === 'loading'}
+                  className={cn(
+                    "p-4 rounded-lg border text-left w-full h-full min-h-[7rem] flex flex-col justify-between transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+                    statusClasses[currentStatus]
+                  )}
+                >
+                  <div className="flex justify-between items-start">
+                      <span className="font-semibold text-sm text-foreground pr-2">{endpoint.title}</span>
+                      <StatusIcon status={currentStatus} />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 mt-2">
+                    <Badge variant="outline" className="text-xs font-mono">{endpoint.method}</Badge>
+                    <div className="text-xs font-mono truncate w-full">
+                      {(currentStatus === 'failure') && <span className="text-destructive">{currentStatusState.message}</span>}
+                      {(currentStatus === 'success') && <span className="text-green-400">{currentStatusState.message}</span>}
+                    </div>
+                  </div>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-mono">{endpoint.method} {endpoint.url}</p>
+                {endpoint.body && <p className="font-mono text-xs text-muted-foreground">{JSON.stringify(endpoint.body)}</p>}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
