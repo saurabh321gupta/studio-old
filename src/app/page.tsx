@@ -16,8 +16,8 @@ export default function Home() {
         </header>
         <Card className="border-2 border-border/50 shadow-xl">
           <CardHeader>
-            <CardTitle>Price Service Status</CardTitle>
-            <CardDescription>Click a region to validate its price service response in real-time.</CardDescription>
+            <CardTitle>Price Endpoint Status</CardTitle>
+            <CardDescription>Click an app to validate its price endpoint response in real-time.</CardDescription>
           </CardHeader>
           <CardContent>
             <EndpointTable endpoints={endpoints} />
