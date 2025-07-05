@@ -54,12 +54,14 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
       url = urlMatch[0];
     }
 
+    let explicitMethod = false;
     // Extract method, e.g., -X POST
     const methodMatch = curl.match(/-X\s+([A-Z]+)/);
     if (methodMatch && methodMatch[1]) {
       const matchedMethod = methodMatch[1].toUpperCase();
       if (['GET', 'POST', 'PUT', 'DELETE'].includes(matchedMethod)) {
         method = matchedMethod as 'GET' | 'POST' | 'PUT' | 'DELETE';
+        explicitMethod = true;
       }
     }
 
@@ -79,7 +81,15 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
     // Extract body, e.g., -d '{"key": "value"}'
     const bodyMatch = curl.match(/(?:-d|--data)\s+'([^']*)'/);
     if (bodyMatch && bodyMatch[1]) {
-      body = JSON.parse(bodyMatch[1]);
+      try {
+        body = JSON.parse(bodyMatch[1]);
+        if (!explicitMethod) {
+          method = 'POST';
+        }
+      } catch (e) {
+        // Not a valid JSON, ignore body
+        console.error("Invalid JSON in cURL body:", e);
+      }
     }
 
     if ((method === 'POST' || method === 'PUT') && body && !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')) {
@@ -92,6 +102,7 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
     return null;
   }
 }
+
 
 function generateCurlString(payload: CustomRequestPayload, fallbackUrl: string): string {
     const urlToUse = payload.url || fallbackUrl;
@@ -192,7 +203,8 @@ export function EndpointTable({ endpoints, onResponse, useCustomRequest, customR
                   // Fallback to endpoint.url on parse failure
                 }
               }
-              const curlString = generateCurlString({ ...parsedCustomCurl, url: finalUrl }, endpoint.url);
+              const finalPayload = { ...parsedCustomCurl, url: finalUrl };
+              const curlString = generateCurlString(finalPayload, endpoint.url);
               tooltipContent = <p className="font-mono max-w-md break-words">{curlString}</p>;
             } else if (customRequestConfig.trim()) {
               tooltipContent = <p className="text-destructive">Invalid cURL command</p>;
