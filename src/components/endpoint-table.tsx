@@ -65,8 +65,8 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
       }
     }
 
-    // Extract headers, e.g., -H 'Header: Value'
-    const headerRegex = /-H\s+'([^']+)'/g;
+    // Extract headers, e.g., -H 'Header: Value' or -H "Header: Value"
+    const headerRegex = /-H\s+["']([^"']+)["']/g;
     let headerMatch;
     while ((headerMatch = headerRegex.exec(curl)) !== null) {
       const headerLine = headerMatch[1];
@@ -78,8 +78,8 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
       }
     }
 
-    // Extract body, e.g., -d '{"key": "value"}'
-    const bodyMatch = curl.match(/(?:-d|--data)\s+'([^']*)'/);
+    // Extract body, e.g., -d '{"key": "value"}' or -d "..."
+    const bodyMatch = curl.match(/(?:-d|--data)\s+["']([^"']*)["']/);
     if (bodyMatch && bodyMatch[1]) {
       try {
         body = JSON.parse(bodyMatch[1]);
