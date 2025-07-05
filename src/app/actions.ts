@@ -3,6 +3,7 @@
 import type { EndpointConfig } from '@/config/endpoints';
 
 export type CustomRequestPayload = {
+  url?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: Record<string, any>;
@@ -15,6 +16,7 @@ export async function checkEndpointStatus(
   try {
     const isCustom = customPayload !== undefined;
 
+    const url = isCustom ? customPayload.url || endpoint.url : endpoint.url;
     const method = isCustom ? customPayload.method || 'GET' : endpoint.method;
     const headers = {
       'Content-Type': 'application/json',
@@ -22,7 +24,7 @@ export async function checkEndpointStatus(
     };
     const body = isCustom ? customPayload.body : endpoint.body;
 
-    const response = await fetch(endpoint.url, {
+    const response = await fetch(url, {
       method: method,
       headers: headers,
       body: body ? JSON.stringify(body) : undefined,

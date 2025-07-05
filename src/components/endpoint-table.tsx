@@ -46,6 +46,13 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
     let method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET';
     const headers: Record<string, string> = {};
     let body: Record<string, any> | undefined = undefined;
+    let url: string | undefined = undefined;
+
+    // Extract URL first
+    const urlMatch = curl.match(/https?:\/\/[^\s'"]+/);
+    if (urlMatch && urlMatch[0]) {
+      url = urlMatch[0];
+    }
 
     // Extract method, e.g., -X POST
     const methodMatch = curl.match(/-X\s+([A-Z]+)/);
@@ -70,27 +77,25 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
     }
 
     // Extract body, e.g., -d '{"key": "value"}'
-    // This looks for -d or --data followed by a single-quoted string
     const bodyMatch = curl.match(/(?:-d|--data)\s+'([^']*)'/);
     if (bodyMatch && bodyMatch[1]) {
-      // Assume body is JSON and parse it
       body = JSON.parse(bodyMatch[1]);
     }
 
-    // If it's a POST/PUT with a body and no Content-Type is set, add it by default.
     if ((method === 'POST' || method === 'PUT') && body && !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')) {
       headers['Content-Type'] = 'application/json';
     }
 
-    return { method, headers, body };
+    return { method, headers, body, url };
   } catch (error) {
-    // This will catch errors from JSON.parse if the body is not valid JSON
     console.error("Failed to parse cURL command:", error);
     return null;
   }
 }
 
-function generateCurlString(payload: CustomRequestPayload, url: string): string {
+function generateCurlString(payload: CustomRequestPayload, fallbackUrl: string): string {
+    const urlToUse = payload.url || fallbackUrl;
+    
     const headersString = Object.entries(payload.headers || {})
         .map(([key, value]) => `-H '${key}: ${value}'`)
         .join(' ');
@@ -99,7 +104,7 @@ function generateCurlString(payload: CustomRequestPayload, url: string): string 
         ? `-d '${JSON.stringify(payload.body)}'` 
         : '';
     
-    return `curl -X ${payload.method} ${headersString} ${bodyString} ${url}`.replace(/\s{2,}/g, ' ');
+    return `curl -X ${payload.method} ${headersString} ${bodyString} ${urlToUse}`.replace(/\s{2,}/g, ' ');
 }
 
 
