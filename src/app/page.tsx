@@ -15,15 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-const customRequestPlaceholder = `{
-  "method": "POST",
-  "headers": {
-    "x-custom-header": "value"
-  },
-  "body": {
-    "custom_key": "custom_value"
-  }
-}`;
+const customRequestPlaceholder = `curl -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer my-token' -d '{"custom_key": "custom_value"}' https://api.example.com/ignored-path`;
 
 export default function Home() {
   const [lastResponse, setLastResponse] = useState<{ title: string; message: string } | null>(null);
@@ -70,8 +62,8 @@ export default function Home() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Custom Request Override</CardTitle>
-                <CardDescription>Use a custom request configuration for all endpoints.</CardDescription>
+                <CardTitle>Custom cURL Override</CardTitle>
+                <CardDescription>Use a custom cURL command for all endpoints.</CardDescription>
               </div>
               <Switch
                 id="custom-request-switch"
@@ -82,7 +74,7 @@ export default function Home() {
           </CardHeader>
           {useCustomRequest && (
             <CardContent>
-              <Label htmlFor="custom-config-textarea">Custom Configuration (JSON)</Label>
+              <Label htmlFor="custom-config-textarea">cURL Command</Label>
               <Textarea
                 id="custom-config-textarea"
                 placeholder={customRequestPlaceholder}
@@ -92,7 +84,7 @@ export default function Home() {
                 rows={10}
               />
               <p className="text-xs text-muted-foreground mt-2">
-                The endpoint URL will be used from the button clicked. Method, headers, and body will be overridden by this configuration.
+                The URL from the cURL command will be ignored. Method, headers, and body will be extracted and used with the endpoint URL from the button clicked.
               </p>
             </CardContent>
           )}

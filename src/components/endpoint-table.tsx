@@ -41,6 +41,55 @@ interface EndpointTableProps {
   customRequestConfig: string;
 }
 
+function parseCurlCommand(curl: string): CustomRequestPayload | null {
+  try {
+    let method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET';
+    const headers: Record<string, string> = {};
+    let body: Record<string, any> | undefined = undefined;
+
+    // Extract method, e.g., -X POST
+    const methodMatch = curl.match(/-X\s+([A-Z]+)/);
+    if (methodMatch && methodMatch[1]) {
+      const matchedMethod = methodMatch[1].toUpperCase();
+      if (['GET', 'POST', 'PUT', 'DELETE'].includes(matchedMethod)) {
+        method = matchedMethod as 'GET' | 'POST' | 'PUT' | 'DELETE';
+      }
+    }
+
+    // Extract headers, e.g., -H 'Header: Value'
+    const headerRegex = /-H\s+'([^']+)'/g;
+    let headerMatch;
+    while ((headerMatch = headerRegex.exec(curl)) !== null) {
+      const headerLine = headerMatch[1];
+      const separatorIndex = headerLine.indexOf(':');
+      if (separatorIndex > -1) {
+        const key = headerLine.substring(0, separatorIndex).trim();
+        const value = headerLine.substring(separatorIndex + 1).trim();
+        headers[key] = value;
+      }
+    }
+
+    // Extract body, e.g., -d '{"key": "value"}'
+    // This looks for -d or --data followed by a single-quoted string
+    const bodyMatch = curl.match(/(?:-d|--data)\s+'([^']*)'/);
+    if (bodyMatch && bodyMatch[1]) {
+      // Assume body is JSON and parse it
+      body = JSON.parse(bodyMatch[1]);
+    }
+
+    // If it's a POST/PUT with a body and no Content-Type is set, add it by default.
+    if ((method === 'POST' || method === 'PUT') && body && !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    return { method, headers, body };
+  } catch (error) {
+    // This will catch errors from JSON.parse if the body is not valid JSON
+    console.error("Failed to parse cURL command:", error);
+    return null;
+  }
+}
+
 export function EndpointTable({ endpoints, onResponse, useCustomRequest, customRequestConfig }: EndpointTableProps) {
   const [statuses, setStatuses] = useState<Record<string, StatusState>>(
     endpoints.reduce((acc, ep) => ({ ...acc, [ep.id]: { status: 'idle' } }), {})
@@ -57,20 +106,21 @@ export function EndpointTable({ endpoints, onResponse, useCustomRequest, customR
         toast({
           variant: 'destructive',
           title: 'Custom Request Error',
-          description: 'Custom request is enabled, but the configuration is empty.',
+          description: 'Custom cURL is enabled, but the command is empty.',
         });
         return;
       }
-      try {
-        customPayload = JSON.parse(customRequestConfig);
-      } catch (error) {
+      
+      const parsedCurl = parseCurlCommand(customRequestConfig);
+      if (!parsedCurl) {
         toast({
           variant: 'destructive',
-          title: 'Invalid JSON',
-          description: 'The custom request configuration is not valid JSON.',
+          title: 'Invalid cURL command',
+          description: 'Could not parse the cURL command. Please check the format.',
         });
-        return; // Abort if JSON is invalid
+        return;
       }
+      customPayload = parsedCurl;
     }
 
     setStatuses(prev => ({ ...prev, [endpoint.id]: { status: 'loading' } }));
