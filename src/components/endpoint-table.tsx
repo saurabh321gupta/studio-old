@@ -41,22 +41,30 @@ interface EndpointTableProps {
   customRequestConfig: string;
 }
 
-function parseCurlCommand(curl: string): CustomRequestPayload | null {
+function parseCurlCommand(rawCurl: string): CustomRequestPayload | null {
   try {
+    // Pre-process to handle multi-line cURL commands by joining lines.
+    const curl = rawCurl.replace(/\\\n/g, ' ').trim();
+
     let method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET';
     const headers: Record<string, string> = {};
     let body: Record<string, any> | undefined = undefined;
     let url: string | undefined = undefined;
 
-    // Extract URL first
-    const urlMatch = curl.match(/https?:\/\/[^\s'"]+/);
-    if (urlMatch && urlMatch[0]) {
-      url = urlMatch[0];
+    // Extract URL from --url or the first http(s) link
+    let urlMatch = curl.match(/--(?:url)\s+([^\s]+)/);
+    if (urlMatch) {
+      url = urlMatch[1].replace(/^['"]|['"]$/g, ''); // remove wrapping quotes
+    } else {
+      urlMatch = curl.match(/https?:\/\/[^\s'"]+/);
+      if (urlMatch) {
+        url = urlMatch[0];
+      }
     }
-
+    
     let explicitMethod = false;
-    // Extract method, e.g., -X POST
-    const methodMatch = curl.match(/-X\s+([A-Z]+)/);
+    // Extract method, e.g., -X POST or --request POST
+    const methodMatch = curl.match(/(?:-X|--request)\s+([A-Z]+)/i);
     if (methodMatch && methodMatch[1]) {
       const matchedMethod = methodMatch[1].toUpperCase();
       if (['GET', 'POST', 'PUT', 'DELETE'].includes(matchedMethod)) {
@@ -65,8 +73,8 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
       }
     }
 
-    // Extract headers, e.g., -H 'Header: Value' or -H "Header: Value"
-    const headerRegex = /-H\s+["']([^"']+)["']/g;
+    // Extract headers, e.g., -H 'Header: Value' or --header "Header: Value"
+    const headerRegex = /(?:-H|--header)\s+["']([^"']+)["']/g;
     let headerMatch;
     while ((headerMatch = headerRegex.exec(curl)) !== null) {
       const headerLine = headerMatch[1];
@@ -78,18 +86,22 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
       }
     }
 
-    // Extract body, e.g., -d '{"key": "value"}' or -d "..."
-    const bodyMatch = curl.match(/(?:-d|--data)\s+["']([^"']*)["']/);
+    // Extract body from -d, --data, or --data-raw. Handles both single and double quotes.
+    const bodyMatch = curl.match(/(?:-d|--data|--data-raw)\s+((?:"(?:\\.|[^"])*")|(?:'(?:\\.|[^']*)'))/);
     if (bodyMatch && bodyMatch[1]) {
-      try {
-        body = JSON.parse(bodyMatch[1]);
-        if (!explicitMethod) {
-          method = 'POST';
+        // bodyMatch[1] is the quoted string. We need to unquote it.
+        const quotedBody = bodyMatch[1];
+        const bodyString = quotedBody.substring(1, quotedBody.length - 1);
+        try {
+            body = JSON.parse(bodyString);
+        } catch (e) {
+            console.error("Invalid JSON in cURL body:", e);
         }
-      } catch (e) {
-        // Not a valid JSON, ignore body
-        console.error("Invalid JSON in cURL body:", e);
-      }
+    }
+
+    // If a body was found but no explicit method, default to POST.
+    if (body && !explicitMethod) {
+      method = 'POST';
     }
 
     if ((method === 'POST' || method === 'PUT') && body && !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')) {
