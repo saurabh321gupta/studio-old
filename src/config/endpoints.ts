@@ -18,9 +18,8 @@ const regions = [
 export const endpoints: EndpointConfig[] = regions.map(region => ({
     id: `read-prod-${region}`,
     title: `Read Prod ${region.charAt(0).toUpperCase() + region.slice(1)}`,
-    url: `/api/price`, // Using the local mock API
-    method: 'POST',
-    body: { request: `price-check-${region}` },
+    url: `https://www.google.com`,
+    method: 'GET',
     expectedResponse: {
       status: 200,
     },
