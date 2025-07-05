@@ -90,6 +90,19 @@ function parseCurlCommand(curl: string): CustomRequestPayload | null {
   }
 }
 
+function generateCurlString(payload: CustomRequestPayload, url: string): string {
+    const headersString = Object.entries(payload.headers || {})
+        .map(([key, value]) => `-H '${key}: ${value}'`)
+        .join(' ');
+    
+    const bodyString = payload.body 
+        ? `-d '${JSON.stringify(payload.body)}'` 
+        : '';
+    
+    return `curl -X ${payload.method} ${headersString} ${bodyString} ${url}`.replace(/\s{2,}/g, ' ');
+}
+
+
 export function EndpointTable({ endpoints, onResponse, useCustomRequest, customRequestConfig }: EndpointTableProps) {
   const [statuses, setStatuses] = useState<Record<string, StatusState>>(
     endpoints.reduce((acc, ep) => ({ ...acc, [ep.id]: { status: 'idle' } }), {})
@@ -133,11 +146,36 @@ export function EndpointTable({ endpoints, onResponse, useCustomRequest, customR
     });
   };
 
+  const parsedCustomCurl = useCustomRequest && customRequestConfig.trim() 
+    ? parseCurlCommand(customRequestConfig) 
+    : null;
+
   return (
     <TooltipProvider>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {endpoints.map((endpoint) => {
           const currentStatus = statuses[endpoint.id].status;
+
+          let tooltipContent;
+          if (useCustomRequest) {
+            if (parsedCustomCurl) {
+              const curlString = generateCurlString(parsedCustomCurl, endpoint.url);
+              tooltipContent = <p className="font-mono max-w-md break-words">{curlString}</p>;
+            } else if (customRequestConfig.trim()) {
+              tooltipContent = <p className="text-destructive">Invalid cURL command</p>;
+            } else {
+              // Fallback to default if custom is toggled but empty
+              tooltipContent = <p className="font-mono">{endpoint.method} {endpoint.url}</p>;
+            }
+          } else {
+            tooltipContent = (
+              <>
+                <p className="font-mono">{endpoint.method} {endpoint.url}</p>
+                {endpoint.body && <p className="font-mono text-xs text-muted-foreground">{JSON.stringify(endpoint.body)}</p>}
+              </>
+            );
+          }
+          
           return (
             <Tooltip key={endpoint.id}>
               <TooltipTrigger asChild>
@@ -159,8 +197,7 @@ export function EndpointTable({ endpoints, onResponse, useCustomRequest, customR
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="font-mono">{endpoint.method} {endpoint.url}</p>
-                {endpoint.body && <p className="font-mono text-xs text-muted-foreground">{JSON.stringify(endpoint.body)}</p>}
+                {tooltipContent}
               </TooltipContent>
             </Tooltip>
           );
