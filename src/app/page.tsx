@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-const customRequestPlaceholder = `curl -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer my-token' -d '{"custom_key": "custom_value"}' https://api.example.com/ignored-path`;
+const customRequestPlaceholder = `curl -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer my-token' -d '{"custom_key": "custom_value"}' https://api.example.com/some/path`;
 
 export default function Home() {
   const [lastResponse, setLastResponse] = useState<{ title: string; message: string } | null>(null);
@@ -84,7 +84,7 @@ export default function Home() {
                 rows={10}
               />
               <p className="text-xs text-muted-foreground mt-2">
-                The URL from the cURL command will be ignored. Method, headers, and body will be extracted and used with the endpoint URL from the button clicked.
+                The path from the cURL's URL will be appended to the clicked endpoint's base URL. The method, headers, and body will be extracted and used for the request.
               </p>
             </CardContent>
           )}

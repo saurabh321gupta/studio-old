@@ -143,7 +143,25 @@ export function EndpointTable({ endpoints, onResponse, useCustomRequest, customR
 
     setStatuses(prev => ({ ...prev, [endpoint.id]: { status: 'loading' } }));
     startTransition(async () => {
-      const result = await checkEndpointStatus(endpoint, customPayload);
+      let payloadForAction = customPayload;
+
+      if (useCustomRequest && customPayload?.url) {
+        try {
+          const endpointUrlObj = new URL(endpoint.url);
+          const curlUrlObj = new URL(customPayload.url);
+          const finalUrl = `${endpointUrlObj.origin}${curlUrlObj.pathname}${curlUrlObj.search}${curlUrlObj.hash}`;
+          
+          payloadForAction = {
+            ...customPayload,
+            url: finalUrl,
+          };
+        } catch (error) {
+          console.error("Error constructing final URL:", error);
+          payloadForAction = { ...customPayload, url: endpoint.url };
+        }
+      }
+
+      const result = await checkEndpointStatus(endpoint, payloadForAction);
       setStatuses(prev => ({ ...prev, [endpoint.id]: { status: result.status } }));
       if (onResponse) {
         onResponse(endpoint.title, result.message);
@@ -164,7 +182,17 @@ export function EndpointTable({ endpoints, onResponse, useCustomRequest, customR
           let tooltipContent;
           if (useCustomRequest) {
             if (parsedCustomCurl) {
-              const curlString = generateCurlString(parsedCustomCurl, endpoint.url);
+              let finalUrl = endpoint.url;
+              if (parsedCustomCurl.url) {
+                try {
+                  const endpointUrlObj = new URL(endpoint.url);
+                  const curlUrlObj = new URL(parsedCustomCurl.url);
+                  finalUrl = `${endpointUrlObj.origin}${curlUrlObj.pathname}${curlUrlObj.search}${curlUrlObj.hash}`;
+                } catch (e) {
+                  // Fallback to endpoint.url on parse failure
+                }
+              }
+              const curlString = generateCurlString({ ...parsedCustomCurl, url: finalUrl }, endpoint.url);
               tooltipContent = <p className="font-mono max-w-md break-words">{curlString}</p>;
             } else if (customRequestConfig.trim()) {
               tooltipContent = <p className="text-destructive">Invalid cURL command</p>;
